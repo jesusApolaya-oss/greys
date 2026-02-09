@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>San Valentín</title>
+
+  <style>
+    :root{
+      --bg1:#7c0a7a;
+      --bg2:#ff2b7a;
+      --card:#f3e7df;
+      --text:#3b2b2b;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      overflow:hidden;
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(900px 700px at 80% 30%, rgba(255,255,255,.12), transparent 60%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    /* TARJETA */
+    .card{
+      width:min(980px, 92vw);
+      background:var(--card);
+      border-radius:28px;
+      box-shadow: 0 18px 45px rgba(0,0,0,.25);
+      padding:28px;
+      display:grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap:18px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .title{
+      font-size:20px;
+      margin:0 0 14px 0;
+      font-weight:700;
+    }
+
+    .msg{
+      font-size:18px;
+      margin:0;
+      white-space:pre-line;
+      line-height:1.35;
+    }
+
+    .sig{
+      margin-top:14px;
+      font-size:18px;
+      font-weight:700;
+    }
+
+    /* BOTONES */
+    .actions{
+      margin-top:18px;
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .btn{
+      border:0;
+      padding:12px 18px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow: 0 10px 22px rgba(0,0,0,.15);
+      transition: transform .12s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      font-size:16px;
+    }
+    .btn:active{ transform: scale(.98); }
+    .btn-yes{ background:#ff2a4d; color:white; }
+    .btn-no{ background:#ffffff; color:#3b2b2b; }
+
+    .hint{
+      font-size:14px;
+      opacity:.75;
+      margin-top:10px;
+    }
+
+    /* ÁRBOL */
+    .tree-wrap{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:320px;
+    }
+
+    .trunk{
+      position:absolute;
+      bottom:18px;
+      width:54px;
+      height:170px;
+      background: linear-gradient(180deg, #7a4a2b, #5b341f);
+      border-radius: 18px;
+      transform: skewX(-6deg);
+      box-shadow: inset -8px 0 0 rgba(0,0,0,.12);
+      z-index:2;
+    }
+
+    .crown{
+      position:absolute;
+      width:280px;
+      height:240px;
+      bottom:140px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:1;
+    }
+
+    /* HOJAS (corazones) */
+    .leaf{
+      position:absolute;
+      width:12px;
+      height:12px;
+      transform: rotate(45deg);
+      border-radius:3px;
+      opacity:0;
+      will-change: transform, opacity;
+    }
+
+    .leaf::before,
+    .leaf::after{
+      content:"";
+      position:absolute;
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background: inherit;
+    }
+    .leaf::before{ left:-6px; top:0; }
+    .leaf::after{ top:-6px; left:0; }
+
+    /* ANIMACIÓN: suben y se acomodan */
+    @keyframes growLeaf{
+      0%{
+        transform: translateY(180px) rotate(45deg) scale(0.3);
+        opacity:0;
+      }
+      55%{ opacity:1; }
+      100%{
+        transform: translateY(0) rotate(45deg) scale(1);
+        opacity:1;
+      }
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 820px){
+      .card{ grid-template-columns: 1fr; }
+      .tree-wrap{ min-height:360px; }
+      .title{ font-size:18px; }
+      .msg{ font-size:17px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="card">
+
+    <!-- TEXTO -->
+    <section>
+      <h2 class="title">Para Greys Garcia:</h2>
+
+      <p class="msg">
+No sé si esto cuente como propuesta formal…
+pero…
+
+¿Quieres ser mi San Valentín?
+
+Si dices que sí, queda notarialmente confirmado 😌
+y este árbol será tu ramo de rosas,
+porque el delivery claramente no llega hasta tu casa 😂
+      </p>
+
+      <div class="sig">— Con cariño: Ing. Jesus Apolaya</div>
+
+      <div class="actions">
+        <button class="btn btn-yes" id="btnYes">Sí 💖</button>
+        <button class="btn btn-no" id="btnNo">No 🙃</button>
+      </div>
+
+      <div class="hint" id="hint">
+        Tip: intenta presionar “No” 😈
+      </div>
+    </section>
+
+    <!-- ÁRBOL -->
+    <section class="tree-wrap">
+      <div class="crown" id="crown"></div>
+      <div class="trunk"></div>
+    </section>
+
+  </main>
+
+
+  <script>
+    const crown = document.getElementById("crown");
+    const btnYes = document.getElementById("btnYes");
+    const btnNo  = document.getElementById("btnNo");
+    const hint   = document.getElementById("hint");
+
+    let built = false;
+
+    // Genera puntos con ecuación de corazón y los mapea al contenedor
+    function heartPoints(n=220){
+      // Corazón clásico:
+      // x = 16 sin^3(t)
+      // y = 13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t)
+      const pts = [];
+      for(let i=0;i<n;i++){
+        const t = (i / n) * Math.PI * 2;
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+        pts.push({x, y});
+      }
+
+      // Normalizar a 0..1
+      const xs = pts.map(p=>p.x);
+      const ys = pts.map(p=>p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+      return pts.map(p=>({
+        u: (p.x - minX) / (maxX - minX),
+        v: (p.y - minY) / (maxY - minY)
+      }));
+    }
+
+    function buildHeart(){
+      if(built) return;
+      built = true;
+
+      // Limpia por si acaso
+      crown.innerHTML = "";
+
+      const colors = ["#ff2a4d","#ff4d6d","#ff6b8a","#ff1f6a","#ff7aa8","#ff3b8d","#ff5c7c"];
+      const w = crown.clientWidth;
+      const h = crown.clientHeight;
+
+      // puntos base
+      const pts = heartPoints(240);
+
+      // para que se vea “relleno”, duplicamos y agregamos jitter
+      const total = 260;
+      for(let i=0;i<total;i++){
+        const leaf = document.createElement("div");
+        leaf.className = "leaf";
+
+        const base = pts[i % pts.length];
+
+        // Coordenadas finales dentro del contenedor
+        let x = base.u * (w - 14);
+        let y = (1 - base.v) * (h - 14); // invertimos Y para que quede arriba bonito
+
+        // relleno + variación suave (jitter)
+        x += (Math.random() * 16 - 8);
+        y += (Math.random() * 14 - 7);
+
+        leaf.style.left = x + "px";
+        leaf.style.top  = y + "px";
+
+        const size = 8 + Math.random()*10;
+        leaf.style.width = size+"px";
+        leaf.style.height = size+"px";
+
+        leaf.style.background = colors[Math.floor(Math.random()*colors.length)];
+
+        // animación: suben y encajan
+        const dur = 1.6 + Math.random()*1.8;
+        const delay = Math.random()*2.2;
+
+        leaf.style.animation = `growLeaf ${dur}s cubic-bezier(.2,.9,.2,1) forwards`;
+        leaf.style.animationDelay = `${delay}s`;
+
+        crown.appendChild(leaf);
+      }
+
+      // UI
+      btnYes.disabled = true;
+      btnYes.style.opacity = "0.85";
+      hint.textContent = "✅ Quedó oficialmente confirmado. (Sí aceptó 😌)";
+      btnNo.textContent = "No (ya fue 😅)";
+    }
+
+    // BOTÓN "NO" SE ESCAPA
+    function moveNoButton(){
+      // lo ponemos fixed para moverlo por toda la pantalla
+      const rect = btnNo.getBoundingClientRect();
+      btnNo.style.position = "fixed";
+      btnNo.style.zIndex = 9999;
+
+      const pad = 12;
+      const maxX = window.innerWidth  - rect.width  - pad;
+      const maxY = window.innerHeight - rect.height - pad;
+
+      const x = pad + Math.random() * Math.max(1, maxX - pad);
+      const y = pad + Math.random() * Math.max(1, maxY - pad);
+
+      btnNo.style.left = x + "px";
+      btnNo.style.top  = y + "px";
+    }
+
+    // Eventos para desktop y mobile:
+    btnNo.addEventListener("mouseenter", moveNoButton);
+    btnNo.addEventListener("mouseover", moveNoButton);
+    btnNo.addEventListener("pointerdown", (e)=>{ e.preventDefault(); moveNoButton(); });
+    btnNo.addEventListener("touchstart", (e)=>{ e.preventDefault(); moveNoButton(); }, {passive:false});
+    btnNo.addEventListener("click", (e)=>{ e.preventDefault(); moveNoButton(); });
+
+    // BOTÓN "SÍ" arma el corazón
+    btnYes.addEventListener("click", ()=>{
+      buildHeart();
+    });
+
+    // Estado inicial: sin corazón armado (solo tronco)
+    // Si quieres que haya unas poquitas hojas "de espera", lo agrego.
+  </script>
+
+</body>
+</html>
